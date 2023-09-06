@@ -7,7 +7,7 @@ import (
 
 type PostgresRepository interface {
 	GetOrderById(uid string) (models.Order, error)
-	CreateOrder(order models.Order) (string, error) // возвращаем uid
+	CreateOrder(order models.Order) error // возвращаем uid
 }
 
 type CacheRepository interface {

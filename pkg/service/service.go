@@ -7,7 +7,7 @@ import (
 
 type OrdersDB interface {
 	GetOrderById(uid string) (models.Order, error)
-	CreateOrder(order models.Order) (string, error)
+	CreateOrder(order models.Order) error
 }
 
 type OrderCache interface {
