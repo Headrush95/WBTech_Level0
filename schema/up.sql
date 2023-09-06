@@ -1,19 +1,3 @@
-CREATE TABLE IF NOT EXISTS orders
-(
-    order_uid  VARCHAR(19) PRIMARY KEY,
-    track_number VARCHAR(255) NOT NULL,
-    entry VARCHAR(50) NOT NULL,
-    delivery INT REFERENCES delivery(id) ON DELETE CASCADE NOT NULL,
-    payment INT REFERENCES transactions(id) ON DELETE CASCADE NOT NULL,
-    items INT[] REFERENCES items(id) ON DELETE CASCADE NOT NULL, --?????
-    locale VARCHAR(2) NOT NULL ,
-    internal_signature VARCHAR(255),
-    sharedkey VARCHAR(5) NOT NULL,
-    sm_id INT,
-    date_created TIMESTAMP NOT NULL,
-    off_shard VARCHAR(5) NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS items
 (
     id SERIAL PRIMARY KEY,
@@ -55,4 +39,26 @@ CREATE TABLE IF NOT EXISTS transactions
     delivery_cost INT,
     goods_total INT,
     custom_fee INT
+);
+
+CREATE TABLE IF NOT EXISTS orders
+(
+    order_uid  VARCHAR(19) PRIMARY KEY,
+    track_number VARCHAR(255) NOT NULL,
+    entry VARCHAR(50) NOT NULL,
+    delivery INT REFERENCES delivery(id) ON DELETE CASCADE NOT NULL,
+    payment INT REFERENCES transactions(id) ON DELETE CASCADE NOT NULL,
+    --items INT UNIQUE NOT NULL,
+    locale VARCHAR(2) NOT NULL,
+    internal_signature VARCHAR(255),
+    sharedkey VARCHAR(5) NOT NULL,
+    sm_id INT,
+    date_created TIMESTAMP NOT NULL,
+    off_shard VARCHAR(5) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS itemsInOrders
+(
+    order_uid VARCHAR(19) REFERENCES orders(order_uid),
+    item_id INT REFERENCES items(id) NOT NULL
 );
