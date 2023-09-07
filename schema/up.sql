@@ -10,30 +10,17 @@ CREATE TABLE IF NOT EXISTS delivery
     email VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS transactions
-(
-    id SERIAL PRIMARY KEY, --уйти от id и связать таблицы через order_uid=transaction
-    transaction VARCHAR(255) NOT NULL,
-    request_id VARCHAR(255) NOT NULL,
-    currency VARCHAR(5) NOT NULL,
-    provider varchar(255) NOT NULL,
-    amount INT NOT NULL,
-    payment_dt TIMESTAMP NOT NULL,
-    bank VARCHAR(255) NOT NULL,
-    delivery_cost INT NOT NULL,
-    goods_total INT NOT NULL,
-    custom_fee INT
-);
-
 CREATE TABLE IF NOT EXISTS orders
 (
     order_uid  VARCHAR(19) PRIMARY KEY,
     track_number VARCHAR(255) NOT NULl UNIQUE,
     entry VARCHAR(50) NOT NULL,
     delivery INT REFERENCES delivery(id) ON DELETE CASCADE NOT NULL,
-    payment INT REFERENCES transactions(id) ON DELETE CASCADE NOT NULL,--уйти от id и связать таблицы через order_uid=transaction
+--     payment INT REFERENCES transactions(transaction) ON DELETE CASCADE NOT NULL,--уйти от id и связать таблицы через order_uid=transaction
     locale VARCHAR(2) NOT NULL,
     internal_signature VARCHAR(255),
+    customer_id VARCHAR(255),
+    delivery_service VARCHAR(255),
     shardkey VARCHAR(5) NOT NULL,
     sm_id INT,
     date_created TIMESTAMP NOT NULL,
@@ -54,5 +41,23 @@ CREATE TABLE IF NOT EXISTS items
     brand VARCHAR(255) NOT NULL,
     status INT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS transactions
+(
+--     id SERIAL PRIMARY KEY, --уйти от id и связать таблицы через order_uid=transaction
+    transaction VARCHAR(19) PRIMARY KEY REFERENCES orders(order_uid) ON DELETE CASCADE,
+    request_id VARCHAR(255) NOT NULL,
+    currency VARCHAR(5) NOT NULL,
+    provider varchar(255) NOT NULL,
+    amount INT NOT NULL,
+    payment_dt TIMESTAMP NOT NULL,
+    bank VARCHAR(255) NOT NULL,
+    delivery_cost INT NOT NULL,
+    goods_total INT NOT NULL,
+    custom_fee INT
+);
+
+CREATE INDEX track_number_key ON items (track_number);
+
 
 

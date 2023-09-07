@@ -8,8 +8,8 @@ type Order struct {
 	Uid               string    `json:"order_uid" db:"order_uid" binding:"required"`
 	TrackNumber       string    `json:"track_number" db:"track_number" binding:"required"`
 	Entry             string    `json:"entry" db:"entry" binding:"required"`
-	Delivery          Delivery  `json:"delivery" db:"delivery" binding:"required"`
-	Payment           Payment   `json:"payment" db:"payment" binding:"required"`
+	Delivery          Delivery  `json:"delivery" binding:"required"`
+	Payment           Payment   `json:"payment" binding:"required"`
 	Items             []Item    `json:"items" binding:"required"`
 	Locale            string    `json:"locale" db:"locale" binding:"required"`
 	InternalSignature string    `json:"internal_signature" db:"internal_signature"`

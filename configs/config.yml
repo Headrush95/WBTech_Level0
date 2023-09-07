@@ -6,3 +6,5 @@ db:
   username: "WBTechTest"
   dbname: "WBTechDB"
   sslmode: "disable"
+cache:
+  initialSize: 1000

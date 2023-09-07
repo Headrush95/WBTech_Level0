@@ -6,30 +6,17 @@ import (
 	"WBTech_Level0/pkg/handler"
 	"WBTech_Level0/pkg/repository"
 	"WBTech_Level0/pkg/service"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
-	"syscall"
 )
 
 func main() {
-	defer func() {
-		if c := recover(); c != nil {
-			// что-то делать))0)
-		}
-	}()
-
-	logrus.SetFormatter(new(logrus.JSONFormatter))
 	err := configs.InitConfig()
 	if err != nil {
 		logrus.Panicf("error occured initializing configs: %v", err)
-	}
-
-	if err = godotenv.Load(); err != nil {
-		logrus.Panicf("error occured while loading enviroment file: %s", err.Error())
 	}
 
 	db, err := repository.NewPostgresDB(repository.Config{
@@ -58,7 +45,6 @@ func main() {
 	srv := new(WBTech_Level_0.Server)
 
 	//closer.Bind(srv.Shutdown)
-
 	go func() {
 		if err := srv.Run(viper.GetString("port"), handlers.InitRoutes()); err != nil {
 			logrus.Panicf("error occured running consumer server: %v", err)
@@ -68,9 +54,9 @@ func main() {
 
 	// TODO проработать нормальную схему закрытия приложения...
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(quit, os.Interrupt, os.Kill)
+	//signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
 	<-quit
-
 	srv.Shutdown()
 	// TODO возможно, стоит вернуть как было, так как в closer вызывается os.Exit -> defer'ы бессмыслены
 	//closer.Hold()

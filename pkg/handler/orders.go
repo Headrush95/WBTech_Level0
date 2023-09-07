@@ -16,16 +16,21 @@ func (h *Handler) CreateOrder(c *gin.Context) {
 
 		//TODO можно ли как-то записать тело ответа не трогая код статуса ответа, так как BindJSON и так записывает код 400??
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("error occured while parsing request body: %s", err.Error()),
+			"error": fmt.Sprintf("error occurred while parsing request body: %s", err.Error()),
 		})
 		return
 	}
 
+	//// TODO DELETE
+	//b, _ := json.MarshalIndent(order, "", "	")
+	//fmt.Println(string(b))
+	//// TODO DELETE
+
 	err = h.services.CreateOrder(order)
 	if err != nil {
-		logrus.Errorf("error occured while creating order DB entry: %s", err.Error())
+		logrus.Errorf("error occurred while creating order DB entry: %s", err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("error occured while creating order DB entry: %s", err.Error()),
+			"error": fmt.Sprintf("error occurred while creating order DB entry: %s", err.Error()),
 		})
 		return
 	}
@@ -33,7 +38,7 @@ func (h *Handler) CreateOrder(c *gin.Context) {
 	// запись в кэш
 	err = h.services.PutOrder(order)
 	if err != nil {
-		logrus.Errorf("error occured while putting order data into cache: %s", err.Error())
+		logrus.Errorf("error occurred while putting order data into cache: %s", err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("error occured while putting order data into cache: %s", err.Error()),
 		})
@@ -45,32 +50,22 @@ func (h *Handler) CreateOrder(c *gin.Context) {
 	})
 }
 
-type orderRequest struct {
-	Uid string `json:"uid"`
-}
-
 func (h *Handler) GetOrderById(c *gin.Context) {
-	var req orderRequest
-
-	err := c.BindJSON(&req)
-	if err != nil {
-		logrus.Errorf("[%s] error occured while parsing request body: %s", c.ClientIP(), err.Error())
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-	}
-
-	if len(req.Uid) != 19 {
+	uid := c.Param("id")
+	if len(uid) != 19 {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"error": "incorrect order uid",
 		})
+		return
 	}
 
-	order, err := h.services.GetOrder(req.Uid)
+	//order, err := h.services.GetOrder(uid)
+	order, err := h.services.GetOrderById(uid) // TODO поменять на поиск в кэше!!!
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("there is no order with uid %s", req.Uid),
+			"error": fmt.Sprintf("error occurred while trying get order with uid %s: %s", uid, err.Error()),
 		})
+		return
 	}
 
 	c.JSON(http.StatusOK, order)
