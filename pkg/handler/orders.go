@@ -2,8 +2,10 @@ package handler
 
 import (
 	"WBTech_Level0/models"
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -21,15 +23,18 @@ func (h *Handler) CreateOrder(c *gin.Context) {
 		return
 	}
 
-	//// TODO DELETE
-	//b, _ := json.MarshalIndent(order, "", "	")
-	//fmt.Println(string(b))
-	//// TODO DELETE
-
+	// запись в БД
 	err = h.services.CreateOrder(order)
 	if err != nil {
 		logrus.Errorf("error occurred while creating order DB entry: %s", err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+		status := 0
+		if ok := errors.As(err, &validator.ValidationErrors{}); ok {
+			status = http.StatusBadRequest
+		} else {
+			status = http.StatusInternalServerError
+		}
+
+		c.AbortWithStatusJSON(status, gin.H{
 			"error": fmt.Sprintf("error occurred while creating order DB entry: %s", err.Error()),
 		})
 		return
@@ -45,6 +50,7 @@ func (h *Handler) CreateOrder(c *gin.Context) {
 		return
 	}
 
+	// тело ответа для удобства проверки работоспособности
 	c.JSON(http.StatusOK, gin.H{
 		"order_uid": order.Uid,
 	})
@@ -59,8 +65,8 @@ func (h *Handler) GetOrderById(c *gin.Context) {
 		return
 	}
 
-	//order, err := h.services.GetOrder(uid)
-	order, err := h.services.GetOrderById(uid) // TODO поменять на поиск в кэше!!!
+	order, err := h.services.GetOrder(uid)
+	//order, err := h.services.GetOrderById(uid) // TODO поменять на поиск в кэше!!!
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("error occurred while trying get order with uid %s: %s", uid, err.Error()),
@@ -70,4 +76,16 @@ func (h *Handler) GetOrderById(c *gin.Context) {
 
 	c.JSON(http.StatusOK, order)
 
+}
+
+func (h *Handler) GetAllOrders(c *gin.Context) {
+	orders, err := h.services.GetAllOrders()
+	if err != nil {
+		// формально, не всегда код ошибки 500
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("error occurred while trying get all orders: %s", err.Error()),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, orders)
 }

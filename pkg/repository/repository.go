@@ -6,13 +6,15 @@ import (
 )
 
 type PostgresRepository interface {
+	CreateOrder(order models.Order) error
 	GetOrderById(uid string) (models.Order, error)
-	CreateOrder(order models.Order) error // возвращаем uid
+	CloseStatements() error
 }
 
 type CacheRepository interface {
 	PutOrder(order models.Order) error
 	GetOrder(uid string) (models.Order, error)
+	GetAllOrders() ([]models.Order, error)
 }
 
 type Repository struct {
@@ -21,8 +23,11 @@ type Repository struct {
 }
 
 func NewRepository(db *sqlx.DB) *Repository {
+	orderPostgres := NewOrderPostgres(db)
+	cache := NewCache(orderPostgres)
+
 	return &Repository{
-		PostgresRepository: NewOrderPostgres(db),
-		CacheRepository:    NewCache(),
+		PostgresRepository: orderPostgres,
+		CacheRepository:    cache,
 	}
 }

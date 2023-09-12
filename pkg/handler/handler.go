@@ -20,6 +20,7 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	{
 		orders.POST("/create", h.CreateOrder)
 		orders.GET("/:id", h.GetOrderById)
+		orders.GET("/", h.GetAllOrders)
 	}
 
 	return router

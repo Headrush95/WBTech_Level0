@@ -6,17 +6,20 @@ import (
 	"WBTech_Level0/pkg/handler"
 	"WBTech_Level0/pkg/repository"
 	"WBTech_Level0/pkg/service"
+	"context"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
 	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
 	err := configs.InitConfig()
 	if err != nil {
-		logrus.Panicf("error occured initializing configs: %v", err)
+		logrus.Panicf("[Consumer] error occured initializing configs: %v", err)
 	}
 
 	db, err := repository.NewPostgresDB(repository.Config{
@@ -28,37 +31,51 @@ func main() {
 		SSLMode:  viper.GetString("db.sslmode"),
 	})
 	if err != nil {
-		logrus.Panicf("error occured connection to DB: %v", err)
+		logrus.Panicf("[Consumer] error occured connection to DB: %v", err)
 	}
 
 	// Закрываем БД
 	defer func() {
 		if err := db.Close(); err != nil {
-			logrus.Panicf("error occured while closing DB: %v", err)
+			logrus.Panicf("[Consumer] error occured while closing DB: %v\n", err)
 		}
-		logrus.Println("closing DB...")
+
+		logrus.Println("[Consumer] closing DB...")
 	}()
 
 	repo := repository.NewRepository(db)
+	defer func() {
+		err := repo.PostgresRepository.CloseStatements()
+		if err != nil {
+			logrus.Printf("[Consumer] error occurred while closing statements: %v\n", err)
+		}
+	}()
+
 	services := service.NewService(repo)
 	handlers := handler.NewHandler(services)
 	srv := new(WBTech_Level_0.Server)
 
-	//closer.Bind(srv.Shutdown)
+	// Запускаем http сервер
 	go func() {
 		if err := srv.Run(viper.GetString("port"), handlers.InitRoutes()); err != nil {
-			logrus.Panicf("error occured running consumer server: %v", err)
+			logrus.Panicf("[Consumer] error occured running consumer server: %v\n", err)
 		}
-		logrus.Println("App started...")
+		logrus.Println("[Consumer] App started...")
 	}()
 
 	// TODO проработать нормальную схему закрытия приложения...
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, os.Kill)
-	//signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
-	<-quit
-	srv.Shutdown()
-	// TODO возможно, стоит вернуть как было, так как в closer вызывается os.Exit -> defer'ы бессмыслены
-	//closer.Hold()
-	logrus.Println("App closed...")
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	<-ctx.Done()
+	stop()
+	logrus.Println("[Consumer] shutting down gracefully, press Ctrl+C again to force")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err = srv.Shutdown(ctx); err != nil {
+		logrus.Panicf("[Consumer] server forced to shutdown: %v\n", err)
+	}
+
+	logrus.Println("[Consumer] server exiting...")
 }

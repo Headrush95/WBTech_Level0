@@ -13,6 +13,7 @@ type OrdersDB interface {
 type OrderCache interface {
 	PutOrder(order models.Order) error
 	GetOrder(uid string) (models.Order, error)
+	GetAllOrders() ([]models.Order, error)
 }
 
 type Service struct {

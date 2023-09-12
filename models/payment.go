@@ -6,23 +6,24 @@ import (
 	"time"
 )
 
+// TODO добавить валидацию
+
 type Payment struct {
-	Transaction  string      `json:"transaction" db:"transaction" binding:"required"`
+	Transaction  string      `json:"transaction" db:"transaction" validate:"required,max=19"`
 	RequestId    string      `json:"request_id" db:"request_id"`
-	Currency     string      `json:"currency" db:"currency" binding:"required"`
-	Provider     string      `json:"provider" db:"provider" binding:"required"`
-	Amount       int         `json:"amount" db:"amount" binding:"required"`
-	PaymentDate  paymentDate `json:"payment_dt" db:"payment_dt" binding:"required"`
-	Bank         string      `json:"bank" db:"bank" binding:"required"`
-	DeliveryCost int         `json:"delivery_cost" db:"delivery_cost" binding:"required"`
-	GoodsTotal   int         `json:"goods_total" db:"goods_total" binding:"required"`
-	CustomFee    int         `json:"custom_fee" db:"custom_fee"`
+	Currency     string      `json:"currency" db:"currency" validate:"required,max=5"`
+	Provider     string      `json:"provider" db:"provider" validate:"required,max=255"`
+	Amount       int         `json:"amount" db:"amount" validate:"required,gt=0"` // не использую uint во избежания конфликтов с БД
+	PaymentDate  paymentDate `json:"payment_dt" db:"payment_dt" validate:"required"`
+	Bank         string      `json:"bank" db:"bank" validate:"required,max=255"`
+	DeliveryCost int         `json:"delivery_cost" db:"delivery_cost" validate:"required,gt=0"`
+	GoodsTotal   int         `json:"goods_total" db:"goods_total" validate:"required,gt=0"`
+	CustomFee    int         `json:"custom_fee" db:"custom_fee" validate:"gte=0"`
 }
 
 /*
-	теоретически можно оставить просто поле в БД как bigint (для даты в unix формате),
-
-но тогда данные таблицы будет сложно анализировать по дате.
+Теоретически можно оставить поле в БД как bigint (для даты в unix формате),
+а в структуре оставить int, но тогда данные таблицы будет сложно анализировать по дате.
 */
 type paymentDate struct {
 	time.Time

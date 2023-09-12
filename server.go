@@ -2,7 +2,6 @@ package WBTech_Level_0
 
 import (
 	"context"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 )
@@ -22,9 +21,6 @@ func (s *Server) Run(port string, handler http.Handler) error {
 	return s.httpServer.ListenAndServe()
 }
 
-func (s *Server) Shutdown() {
-	err := s.httpServer.Shutdown(context.Background())
-	if err != nil {
-		logrus.Errorf("error occured while shuting down http server: %s", err.Error())
-	}
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.httpServer.Shutdown(ctx)
 }
