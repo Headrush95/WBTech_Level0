@@ -8,3 +8,10 @@ db:
   sslmode: "disable"
 cache:
   initialSize: 1000
+nats:
+  url_sub: "nats://localhost:4223"
+  url_pub: "nats://localhost:4223"
+  cluster_id: "test-cluster"
+  client_producer: "producer"
+  client_subscriber: "subscriber"
+  subject: "orders"
