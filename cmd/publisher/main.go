@@ -9,7 +9,6 @@ import (
 )
 
 const port = ":3000"
-const natsURL = "nats://localhost:4222"
 
 /*
 Publisher нужен только для того, чтобы проверить работоспособность брокера

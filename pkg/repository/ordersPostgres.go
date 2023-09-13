@@ -3,13 +3,14 @@ package repository
 import (
 	"WBTech_Level0/models"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 	"github.com/sirupsen/logrus"
 )
 
-// TODO реализовать подготовленные выражения для ускорения роботы БД
+var EmptyDB = errors.New("empty DB")
 
 type OrderPostgres struct {
 	db        *sqlx.DB
@@ -23,7 +24,8 @@ func statementError(err error) {
 	}
 }
 
-func NewOrderPostgres(db *sqlx.DB) *OrderPostgres {
+// newStatements подготавливает выражения для запросов в БД.
+func newStatements(db *sqlx.DB) map[string]*sql.Stmt {
 	var err error
 	stmts := make(map[string]*sql.Stmt, 10)
 
@@ -66,17 +68,17 @@ func NewOrderPostgres(db *sqlx.DB) *OrderPostgres {
 		"delivery_cost, goods_total, custom_fee) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", TransactionsTable))
 	statementError(err)
 
-	return &OrderPostgres{db: db, stmts: stmts, validator: validator.New(validator.WithRequiredStructEnabled())}
+	return stmts
+}
+
+func NewOrderPostgres(db *sqlx.DB) *OrderPostgres {
+	return &OrderPostgres{db: db, stmts: newStatements(db), validator: validator.New(validator.WithRequiredStructEnabled())}
 }
 
 // getAllOrders возвращает все заказы из БД (нужен для восстановления кэша после перезапуска приложения)
 func (op *OrderPostgres) getAllOrders() (map[string]models.Order, error) {
 	orders := make(map[string]models.Order, 100)
 	var order models.Order
-
-	//query := fmt.Sprintf("SELECT order_uid FROM %s", OrdersTable) // +
-	//rows, err := op.db.Query(query)
-
 	rows, err := op.stmts["getAllOrdersUid"].Query()
 
 	if err != nil {
@@ -95,6 +97,9 @@ func (op *OrderPostgres) getAllOrders() (map[string]models.Order, error) {
 		}
 		orders[orderId] = order
 	}
+	if len(orders) == 0 {
+		return nil, EmptyDB
+	}
 	return orders, nil
 }
 
@@ -109,32 +114,14 @@ func (op *OrderPostgres) GetOrderById(uid string) (models.Order, error) {
 		return o, err
 	}
 
-	//query := fmt.Sprintf("SELECT order_uid, track_number, entry, locale, internal_signature, customer_id,"+
-	//	" delivery_service, shardkey, sm_id, date_created, oof_shard FROM %s WHERE order_uid=$1", OrdersTable) //+
-	//if err := op.db.Get(&order, query, uid); err != nil {
-	//	return order, err
-	//}
-
 	// Запрашиваем из БД информацию о доставке заказа
 	var delivery models.Delivery
 	var deliveryId int
-
-	//query = fmt.Sprintf("SELECT delivery FROM %s WHERE order_uid=$1", OrdersTable) // Запрашиваем ID доставки //+
-	//row := op.db.QueryRow(query, uid)
-	//if err := row.Scan(&deliveryId); err != nil {
-	//	return models.Order{}, err
-	//}
 
 	row = op.stmts["getDeliveryIdFromOrders"].QueryRow(uid)
 	if err := row.Scan(&deliveryId); err != nil {
 		return models.Order{}, err
 	}
-
-	//query = fmt.Sprintf("SELECT name, phone, zip, city, address, region, email FROM %s "+ //+
-	//	"WHERE id=$1", DeliveryTable)
-	//if err := op.db.Get(&delivery, query, deliveryId); err != nil {
-	//	return models.Order{}, nil
-	//}
 
 	row = op.stmts["getDeliveryById"].QueryRow(deliveryId)
 	if err := row.Scan(&delivery.Name, &delivery.Phone, &delivery.Zip, &delivery.City, &delivery.Address,
@@ -147,12 +134,6 @@ func (op *OrderPostgres) GetOrderById(uid string) (models.Order, error) {
 	// Запрашиваем из БД информацию о оплате заказа
 	var payment models.Payment
 
-	//query = fmt.Sprintf("SELECT transaction, request_id, currency, provider, amount, payment_dt,bank, "+
-	//	"delivery_cost, goods_total, custom_fee FROM %s WHERE transaction=$1", TransactionsTable) //+
-	//if err := op.db.Get(&payment, query, order.Uid); err != nil {
-	//	return models.Order{}, err
-	//}
-
 	row = op.stmts["getPaymentByOrderId"].QueryRow(o.Uid)
 	if err := row.Scan(&payment.Transaction, &payment.RequestId, &payment.Currency, &payment.Provider, &payment.Amount, &payment.PaymentDate,
 		&payment.Bank, &payment.DeliveryCost, &payment.GoodsTotal, &payment.CustomFee); err != nil {
@@ -163,10 +144,6 @@ func (op *OrderPostgres) GetOrderById(uid string) (models.Order, error) {
 
 	// Запрашиваем из БД информацию о товарах в заказе
 	items := make([]models.Item, 0, 10)
-
-	//query = fmt.Sprintf("SELECT chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, "+
-	//	"status FROM %s WHERE track_number=$1", ItemsTable) //+
-	//rows, err := op.db.Query(query, order.TrackNumber)
 
 	rows, err := op.stmts["getItemByTrack"].Query(o.TrackNumber)
 	if err != nil {
@@ -203,13 +180,9 @@ func (op *OrderPostgres) CreateOrder(o models.Order) error {
 	}
 	defer tx.Rollback()
 
-	// TODO заменить явные запросы на подготовленные statements
 	// Заносим данные в таблицу delivery
 	var deliveryId int
 	d := o.Delivery
-
-	//query := fmt.Sprintf("INSERT INTO %s (name, phone, zip, city, address, region, email) "+
-	//	"VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id", DeliveryTable) //+
 
 	txStmt := tx.Stmt(op.stmts["createDelivery"])
 	raw := txStmt.QueryRow(d.Name, d.Phone, d.Zip, d.City, d.Address, d.Region, d.Email)
@@ -218,9 +191,6 @@ func (op *OrderPostgres) CreateOrder(o models.Order) error {
 	}
 
 	// Заносим данные в таблицу orders
-	//query = fmt.Sprintf("INSERT INTO %s (order_uid, track_number, entry, delivery, locale, "+
-	//	"internal_signature, customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard) "+
-	//	"VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)", OrdersTable) //+
 	txStmt = tx.Stmt(op.stmts["createOrder"])
 	_, err = txStmt.Exec(o.Uid, o.TrackNumber, o.Entry, deliveryId, o.Locale, o.InternalSignature,
 		o.CustomerId, o.DeliveryService, o.ShardKey, o.SmId, o.DateCreated, o.OofShard)
@@ -230,10 +200,6 @@ func (op *OrderPostgres) CreateOrder(o models.Order) error {
 
 	// Заносим данные в таблицу items
 	for _, im := range o.Items {
-
-		//query = fmt.Sprintf("INSERT INTO %s (chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, "+
-		//	"brand, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)", ItemsTable) //+
-
 		txStmt = tx.Stmt(op.stmts["createItem"])
 		_, err = txStmt.Exec(im.ChrtId, im.TrackNumber, im.Price, im.Rid, im.Name, im.Sale, im.Size, im.TotalPrice, im.NmId,
 			im.Brand, im.Status)
@@ -244,9 +210,6 @@ func (op *OrderPostgres) CreateOrder(o models.Order) error {
 
 	// Заносим данные в таблицу transactions
 	p := o.Payment
-
-	//query = fmt.Sprintf("INSERT INTO %s (transaction, request_id, currency, provider, amount, payment_dt, bank, "+
-	//	"delivery_cost, goods_total, custom_fee) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", TransactionsTable)
 
 	txStmt = tx.Stmt(op.stmts["createTransaction"])
 	_, err = txStmt.Exec(p.Transaction, p.RequestId, p.Currency, p.Provider, p.Amount, p.PaymentDate.Time, p.Bank, p.DeliveryCost,

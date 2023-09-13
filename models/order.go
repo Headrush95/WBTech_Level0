@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-// TODO добавить валидацию
-
 type Order struct {
 	Uid               string    `json:"order_uid" db:"order_uid" validate:"required,max=19"`
 	TrackNumber       string    `json:"track_number" db:"track_number" validate:"required,max=255"`

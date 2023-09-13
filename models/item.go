@@ -1,7 +1,5 @@
 package models
 
-// TODO добавить валидацию
-
 type Item struct {
 	ChrtId      int    `json:"chrt_id"  db:"chrt_id" validate:"required"`
 	TrackNumber string `json:"track_number" db:"track_number" validate:"required,min=10,max=255"`

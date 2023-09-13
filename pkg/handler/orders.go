@@ -2,6 +2,7 @@ package handler
 
 import (
 	"WBTech_Level0/models"
+	"WBTech_Level0/pkg/repository"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -66,14 +67,12 @@ func (h *Handler) GetOrderById(c *gin.Context) {
 	}
 
 	order, err := h.services.GetOrder(uid)
-	//order, err := h.services.GetOrderById(uid) // TODO поменять на поиск в кэше!!!
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("error occurred while trying get order with uid %s: %s", uid, err.Error()),
 		})
 		return
 	}
-
 	c.JSON(http.StatusOK, order)
 
 }
@@ -81,7 +80,13 @@ func (h *Handler) GetOrderById(c *gin.Context) {
 func (h *Handler) GetAllOrders(c *gin.Context) {
 	orders, err := h.services.GetAllOrders()
 	if err != nil {
-		// формально, не всегда код ошибки 500
+		if errors.Is(err, repository.EmptyDB) {
+			// 200, так как отсутствие заказов не говорит о неправильном запросе или ошибке на сервере
+			c.AbortWithStatusJSON(http.StatusOK, gin.H{
+				"error": "there are no orders in DB",
+			})
+			return
+		}
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("error occurred while trying get all orders: %s", err.Error()),
 		})

@@ -82,7 +82,6 @@ func main() {
 		logrus.Println("[Consumer] subscribed to NATS server...")
 	}(&wg)
 
-	// TODO проработать нормальную схему закрытия приложения...
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 

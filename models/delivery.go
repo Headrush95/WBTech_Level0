@@ -1,7 +1,5 @@
 package models
 
-// TODO добавить валидацию
-
 type Delivery struct {
 	Name    string `json:"name" db:"name" validate:"required,min=3,max=255"`
 	Phone   string `json:"phone" db:"phone" validate:"required,min=5,max=255"`

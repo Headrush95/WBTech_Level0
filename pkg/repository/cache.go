@@ -20,7 +20,6 @@ type Cache struct {
 }
 
 func NewCache(ps *OrderPostgres) *Cache {
-	// postgres GetAllOrders...
 	data, err := ps.getAllOrders()
 	if err != nil {
 		logrus.Panicf("error occurred during cache initialization: %v", err)

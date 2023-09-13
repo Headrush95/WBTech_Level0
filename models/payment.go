@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-// TODO добавить валидацию
-
 type Payment struct {
 	Transaction  string      `json:"transaction" db:"transaction" validate:"required,max=19"`
 	RequestId    string      `json:"request_id" db:"request_id"`
