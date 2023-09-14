@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>Получение информации о заказе WB</title>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            padding: 10%;
+        }
+
+        .input-text {
+            width: 400px;
+            height: 30px;
+            margin-bottom: 20px;
+        }
+
+        .input-json {
+            width: 400px;
+            height: 400px;
+            margin-bottom: auto;
+        }
+
+        .response-modal {
+            display: none;
+            position: fixed;
+            /*z-index: 0.6;*/
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .response-modal-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 20% auto;
+            padding: 20px;
+            width: 400px;
+            height: 800px;
+            background-color: #fff;
+        }
+
+        .response-modal-content pre {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+        }
+        .blurry-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            width: 100%;
+            height: 100vh;
+            background-image: url("WBW.jpg");;
+            background-size: cover;
+            filter: blur(5px);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="slider">
+        <input type="radio" name="mode" id="post" onchange="toggleElements()">
+        <label for="post">POST</label>
+        <input type="radio" name="mode" id="get" checked onchange="toggleElements()">
+        <label for="get">GET</label>
+        <div class="slider-bar"></div>
+    </div>
+    <input type="text" id="uid-input" class="input-text" placeholder="UID заказа" style="display: block">
+    <div class="blurry-background"></div>
+    <textarea id="post-input" class="input-json" placeholder="Тело заказа" style="display: none"></textarea>
+    <button onclick="sendRequest()">Отправить запрос</button>
+</div>
+
+
+<div id="response-modal" class="response-modal">
+    <div class="response-modal-content">
+        <pre id="response-pre"></pre>
+        <button onclick="closeModal()">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    function toggleElements() {
+        const mode = document.querySelector('input[name="mode"]:checked').id;
+        if (mode === 'post') {
+            document.getElementById("post-input").style.display = "block";
+            document.getElementById("uid-input").style.display = "none";
+        } else {
+            document.getElementById("uid-input").style.display = "block";
+            document.getElementById("post-input").style.display = "none";
+        }
+    }
+
+    function sendRequest() {
+        const mode = document.querySelector('input[name="mode"]:checked').id;
+
+        if (mode === 'post') {
+            const postBody = document.getElementById('post-input').value;
+            document.getElementById("post-input").style.display = "block";
+
+            let requestConfig = {
+                method: 'POST',
+                body: postBody
+            }
+            fetch('http://localhost:3000/store', requestConfig)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('response-pre').textContent = JSON.stringify(data, null, 2);
+                    openModal();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+
+        } else if (mode === 'get') {
+            const uid = document.getElementById('uid-input').value;
+            fetch(`http://localhost:8000/orders/${uid}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('response-pre').textContent = JSON.stringify(data, null, 2);
+                    openModal();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+    }
+
+    function openModal() {
+        document.getElementById('response-modal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('response-modal').style.display = 'none';
+    }
+</script>
+</body>
+</html>
