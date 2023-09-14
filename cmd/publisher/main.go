@@ -87,6 +87,8 @@ func storeOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logrus.Println("[Publisher] successfully sent order info")
+	w.Header().Add("Accept-Language", "ru")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Order info has been sent"))
