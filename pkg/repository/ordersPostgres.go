@@ -187,7 +187,7 @@ func (op *OrderPostgres) CreateOrder(o models.Order) error {
 	txStmt := tx.Stmt(op.stmts["createDelivery"])
 	raw := txStmt.QueryRow(d.Name, d.Phone, d.Zip, d.City, d.Address, d.Region, d.Email)
 	if err = raw.Scan(&deliveryId); err != nil {
-		return fmt.Errorf("error occured inserting data into \"delivery\" table: %w", err)
+		return fmt.Errorf("unable to inserting data into \"delivery\" table: %w", err)
 	}
 
 	// Заносим данные в таблицу orders
@@ -195,7 +195,7 @@ func (op *OrderPostgres) CreateOrder(o models.Order) error {
 	_, err = txStmt.Exec(o.Uid, o.TrackNumber, o.Entry, deliveryId, o.Locale, o.InternalSignature,
 		o.CustomerId, o.DeliveryService, o.ShardKey, o.SmId, o.DateCreated, o.OofShard)
 	if err != nil {
-		return fmt.Errorf("error occured inserting data into \"orders\" table: %w", err)
+		return fmt.Errorf("unable to inserting data into \"orders\" table: %w", err)
 	}
 
 	// Заносим данные в таблицу items
@@ -204,7 +204,7 @@ func (op *OrderPostgres) CreateOrder(o models.Order) error {
 		_, err = txStmt.Exec(im.ChrtId, im.TrackNumber, im.Price, im.Rid, im.Name, im.Sale, im.Size, im.TotalPrice, im.NmId,
 			im.Brand, im.Status)
 		if err != nil {
-			return fmt.Errorf("error occured inserting data into \"items\" table: %w", err)
+			return fmt.Errorf("unable to inserting data into \"items\" table: %w", err)
 		}
 	}
 
@@ -215,7 +215,7 @@ func (op *OrderPostgres) CreateOrder(o models.Order) error {
 	_, err = txStmt.Exec(p.Transaction, p.RequestId, p.Currency, p.Provider, p.Amount, p.PaymentDate.Time, p.Bank, p.DeliveryCost,
 		p.GoodsTotal, p.CustomFee)
 	if err != nil {
-		return fmt.Errorf("error occured inserting data into \"transactions\" table: %w", err)
+		return fmt.Errorf("unable to inserting data into \"transactions\" table: %w", err)
 	}
 
 	return tx.Commit()
