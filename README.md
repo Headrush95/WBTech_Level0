@@ -11,6 +11,7 @@
 - [logrus](https://github.com/sirupsen/logrus)
 - [viper](https://github.com/spf13/viper)
 - [validator](https://github.com/go-playground/validator)
+- [mockgen](https://github.com/golang/mock)
 
 
 ## Как запустить сервис:  
