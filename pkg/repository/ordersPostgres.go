@@ -97,9 +97,6 @@ func (op *OrderPostgres) getAllOrders() (map[string]models.Order, error) {
 		}
 		orders[orderId] = order
 	}
-	if len(orders) == 0 {
-		return nil, EmptyDB
-	}
 	return orders, nil
 }
 
