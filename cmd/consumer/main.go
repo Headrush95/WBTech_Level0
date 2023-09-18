@@ -19,11 +19,13 @@ import (
 )
 
 func main() {
+	// инициализируем конфиг
 	err := configs.InitConfig()
 	if err != nil {
 		logrus.Panicf("[Consumer] error occured initializing configs: %v", err)
 	}
 
+	// инициализируем БД
 	db, err := repository.NewPostgresDB(repository.Config{
 		Host:     viper.GetString("db.host"),
 		Port:     viper.GetString("db.port"),
@@ -56,7 +58,7 @@ func main() {
 
 	services := service.NewService(repo)
 	handlers := handler.NewHandler(services)
-	srv := new(WBTech_Level_0.Server)
+	srv := WBTech_Level_0.NewServer()
 
 	// Запускаем http сервер
 	go func() {
@@ -66,12 +68,14 @@ func main() {
 		logrus.Println("[Consumer] App started...")
 	}()
 
+	// подключаемся к NATS
 	natsConn, err := nats.NewConnection(repo)
 	if err != nil {
 		logrus.Panicf("[Consumer] error occurred during connecting to NATS server: %v", err)
 	}
 	defer natsConn.Close()
 
+	// Подписываемся на получение информации о заказах
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
@@ -82,6 +86,7 @@ func main() {
 		logrus.Println("[Consumer] subscribed to NATS server...")
 	}(&wg)
 
+	// Пытаемся нормально закрыть приложение
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
