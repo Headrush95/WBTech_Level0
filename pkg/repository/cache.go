@@ -8,11 +8,9 @@ import (
 	"sync"
 )
 
-var CacheContainsValueError = errors.New("error: the cache already has this order")
-var CacheHasNoValue = errors.New("error: there is no such order uid in the cache")
-var CacheIsEmpty = errors.New("error: the cache is empty")
-
-// TODO поменять на REDIS, если будет время (или целесообразность)
+var CacheContainsValueError = errors.New("the cache already has this order")
+var CacheHasNoValue = errors.New("there is no such order uid in the cache")
+var CacheIsEmpty = errors.New("the cache is empty")
 
 type Cache struct {
 	Data map[string]models.Order
@@ -46,7 +44,6 @@ func (c *Cache) GetOrder(uid string) (models.Order, error) {
 	c.Mx.RLock()
 	defer c.Mx.RUnlock()
 	if _, ok := c.Data[uid]; !ok {
-
 		return models.Order{}, CacheHasNoValue
 	}
 	return c.Data[uid], nil
