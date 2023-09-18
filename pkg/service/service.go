@@ -5,6 +5,8 @@ import (
 	"WBTech_Level0/pkg/repository"
 )
 
+//go:generate mockgen -source=service.go -destination=mocks/mock.go
+
 type OrdersDB interface {
 	GetOrderById(uid string) (models.Order, error)
 	CreateOrder(order models.Order) error
